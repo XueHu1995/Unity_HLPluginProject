@@ -75,7 +75,7 @@ public class BICP_CALI : MonoBehaviour
     }
     public void MoveFront()
     {
-        UQ.m23 = UQ.m23 - 0.002f;
+        UQ.m23 = UQ.m23 - 0.003f;
 
 
         Matrix4x4 P_set_l = P_l * UQ;
@@ -86,7 +86,7 @@ public class BICP_CALI : MonoBehaviour
     }
     public void MoveBack()
     {
-        UQ.m23 = UQ.m23 + 0.002f;
+        UQ.m23 = UQ.m23 + 0.003f;
 
 
         Matrix4x4 P_set_l = P_l * UQ;

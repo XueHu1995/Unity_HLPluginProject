@@ -142,3 +142,17 @@ MonoBehaviour:
       id: 0
       description: None
       axisConstraint: 0
+  - localizationKey: 
+    keyword: NextPrefab
+    keyCode: 0
+    action:
+      id: 0
+      description: None
+      axisConstraint: 0
+  - localizationKey: 
+    keyword: cali
+    keyCode: 0
+    action:
+      id: 0
+      description: None
+      axisConstraint: 0

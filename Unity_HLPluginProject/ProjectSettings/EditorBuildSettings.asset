@@ -5,19 +5,7 @@ EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Scenes:
-  - enabled: 0
-    path: Assets/Scenes/main.unity
-    guid: 74be050fb00ea774ea0cd110b0412bc5
-  - enabled: 0
-    path: Assets/Scenes/badscene.unity
-    guid: b31a255d75b18ac44a58eef6ffc2b0aa
   - enabled: 1
-    path: Assets/Scenes/mainHL2_v2.unity
-    guid: 776ef58ddbebbe74bbc4b985b62de2c9
-  - enabled: 0
     path: Assets/Scenes/mainHL2_v3.unity
     guid: e59f1e5900e81244cae53cf1f8536128
-  - enabled: 0
-    path: Assets/Scenes/cali.unity
-    guid: 255c269296e983f4f91213597e7a00f3
   m_configObjects: {}

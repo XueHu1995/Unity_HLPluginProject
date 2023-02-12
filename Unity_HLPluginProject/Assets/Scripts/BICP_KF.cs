@@ -29,15 +29,14 @@ namespace ArUcoDetectionHoloLensUnity
     {
 
         [Header("Tool/Plan Object")]
-
         public Text myText;
-        public Text myText_rs_hl;
+        //public Text myText_rs_hl;
 
         public GameObject plan;  // entry point
         public GameObject tool;  // entry point
         GameObject tool_head;
         GameObject tool_end;
-        public GameObject femurObj;  // entry point
+        GameObject femurObj;  // entry point
 
         //public LineRenderer lrLeg;
         //public LineRenderer lrTool;
@@ -53,10 +52,17 @@ namespace ArUcoDetectionHoloLensUnity
         public Renderer hipStatus;
         public Renderer kfStatus;
 
+        public TextMesh currentPrefabText;
+        List<GameObject> prefabList = new List<GameObject>();
+        List<string> optionList = new List<string>
+            { "PrefabsGroup/icp_t", "PrefabsGroup/XH1", "PrefabsGroup/XH2", "PrefabsGroup/XH3" };
+        int currNum = 0;
+        int prevNum = 0;
+
 
         TextMesh ErrInfo; // for error display
-        Vector4 localstart;
-        Vector4 localend;
+        Vector4 planlocalstart;
+        Vector4 planlocalend;
         //Vector4 localstart_tool;
         //Vector4 localend_tool;
         Material head;
@@ -89,9 +95,31 @@ namespace ArUcoDetectionHoloLensUnity
         Vector3 planend = Vector3.zero;
         float thres_pos = 0.04f;
         float thres_ang = 10.0f;
+        Matrix4x4 poseWUnity_kf;
 
         private KalmanFilter _kalmanFilter;
         //private KalmanFilter _kalmanFiltertool;
+
+        async void Awake()
+        {
+            GameObject model = GameObject.Find(optionList[0]);
+            prefabList.Add(model);
+            GameObject XH1 = GameObject.Find(optionList[1]);
+            prefabList.Add(XH1);
+            GameObject XH2 = GameObject.Find(optionList[2]);
+            prefabList.Add(XH2);
+            GameObject XH3 = GameObject.Find(optionList[3]);
+            prefabList.Add(XH3);
+
+            femurObj = prefabList[currNum];
+            prefabList[1].SetActive(false);
+            prefabList[2].SetActive(false);
+            prefabList[3].SetActive(false);
+
+            currentPrefabText.text = optionList[currNum];
+
+        }
+
 
         // Use this for initialization
         async void Start()
@@ -105,7 +133,6 @@ namespace ArUcoDetectionHoloLensUnity
             // Initialize gesture handler
             InitializeHandler();
 
-
             // global variable preparation
             ErrInfo = plan.transform.Find("ErrInfo").GetComponent<TextMesh>();
 
@@ -118,15 +145,16 @@ namespace ArUcoDetectionHoloLensUnity
             HipCentre.GetComponent<Renderer>().material.SetColor("_Color", Color.yellow);  // this is globally tracked hip centre, not destroyed
             HipCentre.transform.position = new Vector3(0, 0, 0);
 
-            localstart = new Vector4(0.0136f, 0.027f, 0.006f, 1);
-            localend = new Vector4(0.0136f, 0.027f, -0.119f, 1);
+
+            planlocalstart = new Vector4(0.0136f, 0.027f, 0.006f, 1);
+            planlocalend = new Vector4(0.0136f, 0.027f, -0.114f, 1);
             //localstart_tool = new Vector4(0.025625f, -0.015f, 0.125f, 1);
             //localend_tool = new Vector4(0.025625f, -0.015f, 0, 1);
             rangeNavi = 1 / Mathf.Abs(goalNavi) - 1 / Mathf.Abs(startNavi);
 
             head = plan.transform.Find("head").GetComponent<Renderer>().material;
             end = plan.transform.Find("end").GetComponent<Renderer>().material;
-            body = plan.transform.Find("body").GetComponent<Renderer>().material;
+            //body = plan.transform.Find("body").GetComponent<Renderer>().material;
 
             // intialization of KF...
             Matrix _transitionMat = Matrix.IdentityMatrix(7, 7);  // identity
@@ -134,13 +162,9 @@ namespace ArUcoDetectionHoloLensUnity
             Matrix _errorCovPostMat = Matrix.IdentityMatrix(7, 7);
 
             Matrix _processNoiseCovMat = Matrix.IdentityMatrix(7, 7, 1e-4);
-            Matrix _measurementNoiseCovMat = Matrix.IdentityMatrix(7, 7, 1e-2);
+            Matrix _measurementNoiseCovMat = Matrix.IdentityMatrix(7, 7, 1e-1);
             _kalmanFilter = new KalmanFilter(_errorCovPostMat, _measurementNoiseCovMat, _processNoiseCovMat, _measurementMat, _transitionMat);
 
-            //Matrix _processNoiseCovMat_tool = Matrix.IdentityMatrix(7, 7, 1e-2);
-            //_kalmanFiltertool = new KalmanFilter(_errorCovPostMat, _measurementNoiseCovMat, _processNoiseCovMat_tool, _measurementMat, _transitionMat);
-            //var _initialState = new Matrix(new double[,] { { 0, 0, 0, 0, 0, 0, 0 } }, false);
-            //_kalmanFiltertool.SetInitialState(_initialState);
         }
 
         Vector3 CorrectAngles(Vector3 angles, Vector3 angles_base)
@@ -174,7 +198,7 @@ namespace ArUcoDetectionHoloLensUnity
         {
             if (tooler.rs_hl != Matrix4x4.identity)  // latest calibration result
             {
-                myText_rs_hl.text = tooler.rs_hl.ToString("F5");  // should be nearly identity
+                //myText_rs_hl.text = tooler.rs_hl.ToString("F5");  // should be nearly identity
                 Matrix4x4 rscameraToWorld = controller.cameraToWorld * tooler.rs_hl;  // right handed, real-time
 
                 // send hip location in real time
@@ -193,7 +217,8 @@ namespace ArUcoDetectionHoloLensUnity
 
                     string[] dataSplit = TCPCommunication.message.Split(',');
 
-                    // get femur location and display in real-time: femur_rs -> femur_w
+                    ///// hip ////
+                    // get femur location and display sphere in real-time: femur_rs -> femur_w
                     if (dataSplit.Length == 3 && !hipSet)
                     {
                         Vector3 femur_rs = new Vector3(float.Parse(dataSplit[0]), float.Parse(dataSplit[1]), float.Parse(dataSplit[2]));  // right handed
@@ -203,6 +228,7 @@ namespace ArUcoDetectionHoloLensUnity
                         femurCursor.transform.position = femur_W;
                         TCPCommunication.message = "";
                     }
+
                     // receive calculated hip location
                     else if (dataSplit.Length == 4)
                     {
@@ -214,7 +240,7 @@ namespace ArUcoDetectionHoloLensUnity
                         // yellow hip update its location, already in world!
                         Vector3 hip_W = new Vector3(float.Parse(dataSplit[1]), float.Parse(dataSplit[2]), float.Parse(dataSplit[3]));  // already left handed
                         HipCentre.transform.position = hip_W;
-                        myText.text = " hip is: " + hip_W.ToString() + "\n";
+                        myText.text = "Hip is: " + hip_W.ToString() + "\n";
                         //hipStatus.color = Color.yellow;
                         hipStatus.material.SetColor("_Color", Color.yellow);
                         TCPCommunication.message = "";
@@ -226,12 +252,12 @@ namespace ArUcoDetectionHoloLensUnity
                     else if (dataSplit.Length == 10)
                     {
                         // set guidance position: surgical plan in femur coordinate
-                        localstart.x = float.Parse(dataSplit[0]);
-                        localstart.y = float.Parse(dataSplit[1]);
-                        localstart.z = float.Parse(dataSplit[2]);
-                        localend.x = float.Parse(dataSplit[3]);
-                        localend.y = float.Parse(dataSplit[4]);
-                        localend.z = float.Parse(dataSplit[5]);
+                        planlocalstart.x = float.Parse(dataSplit[0]);
+                        planlocalstart.y = float.Parse(dataSplit[1]);
+                        planlocalstart.z = float.Parse(dataSplit[2]);
+                        planlocalend.x = float.Parse(dataSplit[3]);
+                        planlocalend.y = float.Parse(dataSplit[4]);
+                        planlocalend.z = float.Parse(dataSplit[5]);
 
                         thres_pos = float.Parse(dataSplit[6]);
                         thres_ang = float.Parse(dataSplit[7]);
@@ -243,10 +269,34 @@ namespace ArUcoDetectionHoloLensUnity
                         TCPCommunication.message = "";
                     }
 
+                    // INITIALISATION: set relative plan location, otherwise is origin and unit: 12 + 2 + 2 + 2
+                    else if (dataSplit.Length == 1)
+                    {
+                        if (dataSplit[0] == "next")
+                        {
+                            OnPrefabChange();
+                        }
+                        else if (dataSplit[0] == "confirmhip")
+                        {
+                            ConfirmHip();
+                        }
+                        else if (dataSplit[0] == "redohip")
+                        {
+                            RedoHipTracking();
+                        }
+                        else if (dataSplit[0] == "setbaseline")
+                        {
+                            SetKFBase();
+                        }
+                        TCPCommunication.message = "";
+                    }
+
 
                     // get tracked pose
                     else if (dataSplit.Length == 12)
                     {
+                        tooler.tracking = true;
+
                         // receive plan pose + filtering
                         Matrix4x4 pose_rs = Matrix4x4.identity;
                         pose_rs.SetRow(0, new Vector4(float.Parse(dataSplit[0]), float.Parse(dataSplit[1]), float.Parse(dataSplit[2]), float.Parse(dataSplit[3])));
@@ -268,7 +318,6 @@ namespace ArUcoDetectionHoloLensUnity
 
                             var _initialState = new Matrix(new double[,] { { trans_base.x, trans_base.y, trans_base.z, angles_base.x, angles_base.y, angles_base.z, angles_base.w } }, false);
                             _kalmanFilter.SetInitialState(_initialState);
-                            myText.text = myText.text + "base set!\n";
                             kfStatus.material.SetColor("_Color", Color.green);
 
                         }
@@ -276,6 +325,7 @@ namespace ArUcoDetectionHoloLensUnity
                         // has to be set first
                         if (base_exist)
                         {
+
                             //angles = CorrectAngles(angles, angles_base);
                             if (Vector3.Distance(trans, trans_base) < thres_pos && Quaternion.Angle(angles, angles_base) < thres_ang)
                             {
@@ -286,17 +336,16 @@ namespace ArUcoDetectionHoloLensUnity
                                 Vector4 trans_kf = new Vector4((float)_kalmanFilter.X[0, 0], (float)_kalmanFilter.X[1, 0], (float)_kalmanFilter.X[2, 0], 1);
                                 Quaternion angle_kf = new Quaternion((float)_kalmanFilter.X[3, 0], (float)_kalmanFilter.X[4, 0], (float)_kalmanFilter.X[5, 0], (float)_kalmanFilter.X[6, 0]);
 
-                                Matrix4x4 poseWUnity_kf = Matrix4x4.Rotate(angle_kf);
+                                poseWUnity_kf = Matrix4x4.Rotate(angle_kf);
                                 poseWUnity_kf.SetColumn(3, trans_kf);
-                                //myText.text = trans.ToString("F5") + angles.ToString("F5") + "\n" + trans_kf.ToString("F5") + angle_kf.ToString("F5") + "\n";
 
-                                // femur overlay
+                                // femur overlay update
                                 femurObj.transform.position = poseWUnity_kf.GetColumn(3);  // entry point
                                 femurObj.transform.rotation = poseWUnity_kf.rotation;  // entry point
 
                                 // plan: related to the initalised plan
-                                planstart = poseWUnity_kf * localstart;
-                                planend = poseWUnity_kf * localend;
+                                planstart = poseWUnity_kf * planlocalstart;
+                                planend = poseWUnity_kf * planlocalend;
 
                                 //plan.transform.localScale = new Vector3(1, 1, Vector3.Distance(planstart, planend) / 2);
                                 plan.transform.position = planstart;        // place bond here
@@ -320,16 +369,13 @@ namespace ArUcoDetectionHoloLensUnity
                             femurObj.transform.rotation = poseWUnity.rotation;  // entry point
 
                             // plan: related to the initalised plan
-                            Vector3 planstart = poseWUnity * localstart;
-                            Vector3 planend = poseWUnity * localend;
+                            Vector3 planstart = poseWUnity * planlocalstart;
+                            Vector3 planend = poseWUnity * planlocalend;
 
                             //plan.transform.localScale = new Vector3(1, 1, Vector3.Distance(planstart, planend) / 2);
                             plan.transform.position = planstart;        // place bond here
                             plan.transform.LookAt(planend);
 
-                            //plan.transform.position = planstart;  // entry point
-                            //lrPlan.SetPosition(0, planstart);  // from plan start
-                            //lrPlan.SetPosition(1, planend);  // to plan end, render line as entry path
                         }
 
 
@@ -341,11 +387,12 @@ namespace ArUcoDetectionHoloLensUnity
                 if (base_exist)
                 {
                     Vector3 toolstart = tool_head.transform.position;
-                    Vector3 toolend = tool_end.transform.position;
+                    Vector4 toollocalstart = poseWUnity_kf.inverse * new Vector4(toolstart.x, toolstart.y, toolstart.z, 1);
 
                     // change head cursor colour
-                    Vector3 head_err = (toolstart - planstart) * 1000;
-                    float head_err_val = head_err.magnitude;
+                    Vector4 head_err = (toollocalstart - planlocalstart) * 1000;
+                    Vector2 head_err_judge = new Vector2(head_err.x, head_err.y);
+                    float head_err_val = head_err_judge.magnitude;
                     if (head_err_val < goalNavi)
                     {
                         head.SetColor("_Color", Color.green);
@@ -358,15 +405,20 @@ namespace ArUcoDetectionHoloLensUnity
                     {
                         float pos_diff = 1 / goalNavi - 1 / head_err_val;
                         Color indcolor = new Color(1, 0, 0); //(RGB)
-                        indcolor.g = 1 - pos_diff / rangeNavi;
+                        indcolor.g = 1 - (float)pos_diff / rangeNavi;
                         head.SetColor("_Color", indcolor);
 
                     }
 
 
                     // change end cursor colour
-                    Vector3 end_err = (toolend - planend) * 1000;
-                    float end_err_val = end_err.magnitude;
+                    Vector3 toolend = tool_end.transform.position;
+                    Vector3 toolaxis = toolend - toolstart;
+                    Vector3 planaxis = planend - planstart;
+                    float end_err_val = Mathf.Abs(Vector3.Angle(toolaxis, planaxis));
+
+                    //Vector3 end_err = (toolend - planend) * 1000;
+                    //float end_err_val = end_err.magnitude;
                     if (end_err_val < goalNavi)
                     {
                         end.SetColor("_Color", new Color(0, 1, 0, 0.67f));
@@ -379,23 +431,23 @@ namespace ArUcoDetectionHoloLensUnity
                     {
                         float pos_diff = 1 / goalNavi - 1 / end_err_val;
                         Color indcolor = new Color(1, 0, 0, 0.67f); //(RGB)
-                        indcolor.g = 1 - pos_diff / rangeNavi;
+                        indcolor.g = 1 - (float)pos_diff / rangeNavi;
                         end.SetColor("_Color", indcolor);
 
                     }
-                    ErrInfo.text = "Tip:" + head_err.ToString("F2") + "\n End: " + end_err.ToString("F2") + " mm";
+                    ErrInfo.text = head_err_judge.ToString("F2") + "mm| " + end_err_val.ToString("F2") + "deg";
 
-                    // change head cursor colour
-                    if (head_err_val < goalNavi && end_err_val < goalNavi)
-                    {
-                        body.SetColor("_Color", Color.green);
-                    }
-                    else
-                    {
-                        body.SetColor("_Color", Color.red);
-                    }
+                    //// change head cursor colour
+                    //if (head_err_val < goalNavi && end_err_val < goalNavi)
+                    //{
+                    //    body.SetColor("_Color", Color.green);
+                    //}
+                    //else
+                    //{
+                    //    body.SetColor("_Color", Color.red);
+                    //}
 
-                  
+
                 }
             }
 
@@ -435,7 +487,6 @@ namespace ArUcoDetectionHoloLensUnity
             femurObj.SetActive(!femurObj.activeSelf);
         }
 
-
         public void Delete()
         {
             var _lastfemur = generated[generated.Count - 1];  // green
@@ -445,12 +496,13 @@ namespace ArUcoDetectionHoloLensUnity
             TCPCommunication.SetMessage("Delete");
         }
 
+        // backup receive from pc - c
         public void SetKFBase()
         {
             if (!base_exist)  // if not exist, set
             {
                 set_base = true;
-                myText.text = myText.text + "set KF baseline\n";
+                myText.text = myText.text + "Set KF baseline\n";
             }
             else  // if exist, remove
             {
@@ -458,11 +510,12 @@ namespace ArUcoDetectionHoloLensUnity
                 //kfStatus.color = Color.red;
                 kfStatus.material.SetColor("_Color", Color.red);
 
-                myText.text = myText.text + "remove KF baseline\n";
+                myText.text = myText.text + "Remove KF baseline\n";
 
             }
         }
 
+        // backup receive from pc - c
         public void ConfirmHip()
         {
             Debug.Log("ConfirmHip");
@@ -482,27 +535,17 @@ namespace ArUcoDetectionHoloLensUnity
             femurObj.SetActive(true);
             plan.SetActive(true);
             tool.SetActive(true);
-            //lrTool.enabled = true;
 
-            //hipStatus.color = Color.green;
             hipStatus.material.SetColor("_Color", Color.green);
 
         }
 
-        public void onSliderValueChange(SliderEventData eventData)
-        {
-            float alpha = eventData.NewValue;
-            Material material = femurObj.transform.Find("mesh").GetComponent<Renderer>().material;
-            Color c = material.color;
-            c.a = alpha;
-            material.color = c;
-        }
-
+        // backup receive from pc - b
         public void RedoHipTracking()
         {
             Debug.Log("RedoHipTracking");
-            // let pc know
-            TCPCommunication.SetMessage("redo");
+            //// let pc know
+            //TCPCommunication.SetMessage("redo");
 
             // clear all displayed obj (femur red, femur green, hip faded)
             foreach (var obj in generated)
@@ -530,16 +573,47 @@ namespace ArUcoDetectionHoloLensUnity
             plan.SetActive(false);
             tool.SetActive(false);
 
-            //lrPlan.enabled = false;
-            //lrTool.enabled = false;
-
-            //hipStatus.color = Color.red;
-            //kfStatus.color = Color.red;
             hipStatus.material.SetColor("_Color", Color.red);
-            //kfStatus.material.SetColor("_Color", Color.red);
 
             if (base_exist)
                 SetKFBase(); // kalman filter needs to be stopped
+
+        }
+
+        //public void setCalibration()
+        //{
+        //    // let pc know
+        //    tooler.cali = !tooler.cali;
+        //    TCPCommunication.SetMessage("cali");
+        //}
+
+        public void onSliderValueChange(SliderEventData eventData)
+        {
+            float alpha = eventData.NewValue;
+            Material material = femurObj.transform.Find("mesh").GetComponent<Renderer>().material;
+            Color c = material.color;
+            c.a = alpha;
+            material.color = c;
+        }
+
+
+
+        public void OnPrefabChange()
+        {
+            prevNum = currNum;
+
+            if (currNum == 3)
+                currNum = 0;
+            else
+                currNum = currNum + 1;
+
+            prefabList[prevNum].SetActive(false);
+
+            femurObj = prefabList[currNum];
+            femurObj.SetActive(true);
+
+
+            currentPrefabText.text = optionList[currNum];
 
         }
 

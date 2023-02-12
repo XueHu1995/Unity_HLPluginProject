@@ -14,7 +14,7 @@ using UnityEngine.UI;
 //Able to act as a reciever 
 public class TCPCommunication : MonoBehaviour
 {
-    public Text debug;
+    //public Text debug;
     public static String message = "";
     static string dataToSend = ""; // message sent to pc
     static bool sendMessage = false;
@@ -108,10 +108,10 @@ public class TCPCommunication : MonoBehaviour
         }
 #endif
 
-        if (message != "")
-        {
-            debug.text = message;
-        }
+        //if (message != "")
+        //{
+        //    debug.text = message;
+        //}
     }
 
     public static void SetMessage(string data)
