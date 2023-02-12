@@ -1,12 +1,11 @@
-# DepthCameraPluginProject
+# Unity_HLPluginProject
 ---
- *Copyright (C) 2021 Listed authors: [Hisham Iqbal](mailto:hi213@ic.ac.uk)*
+ *Copyright (C) 2021 Listed authors: [Xue Hu](mailto:xh3816@ic.ac.uk)* [Hisham Iqbal](mailto:hi213@ic.ac.uk)*
  
  **This repository can not be copied and/or distributed without the express permission of the listed authors**
 
 ---
-
-Unity Plugin for using research mode functionality in HoloLens 2. Modified based on [HoloLens2ForCV](https://github.com/microsoft/HoloLens2ForCV) and [HoloLens2-ResearchMode-Unity](https://github.com/petergu684/HoloLens2-ResearchMode-Unity), integrating some basic OpenCV functionality.
+To use our proposed calibration modules, you need to build your Unity Plugin for using research mode functionality in HoloLens 2. Modified based on [HoloLens2ForCV](https://github.com/microsoft/HoloLens2ForCV) and [HoloLens2-ResearchMode-Unity](https://github.com/petergu684/HoloLens2-ResearchMode-Unity), integrating some basic OpenCV functionality.
 
 Custom DLL which tries to detect the presence of tools equipped with IR-reflective markers.
 
@@ -14,9 +13,9 @@ Custom DLL which tries to detect the presence of tools equipped with IR-reflecti
 
 This repo is formed of two main projects: 
 - `HL2UnityPlugin`: which constructs a DLL that allows access to the Research Mode API on the HoloLens 2.
-- `Unity_HLPluginProject`: a sample Unity project demonstrating how to interface with the DLL, as well as custom types that allow you to control the Transforms of Unity objects based on info from the DLL.
+- `Unity_HLPluginProject`: the proposed fast calibration modules using the built DLL. This include a sample Unity project demonstrating how to interface with the DLL, as well as the usage of calibration blocks in the navigation workflow.
 
-## Instructions adapted from  [HoloLens2-ResearchMode-Unity](https://github.com/petergu684/HoloLens2-ResearchMode-Unity):
+## Research mode instructions adapted from  [HoloLens2-ResearchMode-Unity](https://github.com/petergu684/HoloLens2-ResearchMode-Unity):
 
 Skeleton to wrap HoloLens 2 research mode api into Windows Runtime extension. 
 
